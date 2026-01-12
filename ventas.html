@@ -1,137 +1,230 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Punto de Venta - Mi Kiosco</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kiosko POS - Panel de Ventas</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; gap: 20px; padding: 20px; background: #eef2f3; margin: 0; }
-        .seccion { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .lista-venta { flex: 2; min-height: 80vh; }
-        .total-caja { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: center; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #f8f9fa; }
-        .total-numero { font-size: 60px; color: #2ecc71; font-weight: bold; margin: 20px 0; }
-        #codigo-scanner { width: 100%; padding: 15px; font-size: 20px; border: 2px solid #3498db; border-radius: 5px; box-sizing: border-box; }
-        .btn-finalizar { width: 100%; padding: 25px; background: #2ecc71; color: white; border: none; border-radius: 10px; font-size: 24px; cursor: pointer; font-weight: bold; }
-        .btn-finalizar:hover { background: #27ae60; }
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --accent-color: #2ecc71;
+            --input-bg: #2d2d2d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Panel Izquierdo: Lista de Productos */
+        .container-left {
+            flex: 2;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #333;
+        }
+
+        /* Panel Derecho: Totales y Pagos */
+        .container-right {
+            flex: 1;
+            padding: 20px;
+            background-color: var(--card-bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .header { margin-bottom: 20px; }
+        
+        #codigo-scanner {
+            width: 100%;
+            padding: 15px;
+            background: var(--input-bg);
+            border: 2px solid #444;
+            border-radius: 8px;
+            color: white;
+            font-size: 1.2rem;
+            outline: none;
+        }
+
+        #codigo-scanner:focus { border-color: var(--accent-color); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: #888; border-bottom: 1px solid #333; padding: 10px; }
+        td { padding: 15px 10px; border-bottom: 1px solid #222; }
+
+        .total-section { text-align: center; padding: 20px; }
+        .total-label { font-size: 1rem; color: #888; }
+        .total-amount { font-size: 4rem; font-weight: bold; color: var(--accent-color); margin: 10px 0; }
+
+        .payment-methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-pay {
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.3s;
+            background: #333;
+            color: white;
+        }
+
+        .btn-pay.active { background: var(--accent-color); color: black; }
+        .btn-pay:hover { opacity: 0.8; }
+
+        .btn-finalizar {
+            width: 100%;
+            padding: 20px;
+            background: var(--accent-color);
+            color: black;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-finalizar:disabled { background: #555; cursor: not-allowed; }
+
     </style>
 </head>
 <body>
 
-<div class="seccion lista-venta">
-    <h2>🛒 Carrito de Venta</h2>
-    <input type="text" id="codigo-scanner" placeholder="Escanee producto aquí o use el celular..." autofocus>
-    
-    <table id="tabla-ventas">
-        <thead>
-            <tr>
-                <th>Producto</th>
-                <th>Precio</th>
-                <th>Cant.</th>
-                <th>Subtotal</th>
-            </tr>
-        </thead>
-        <tbody>
-            </tbody>
-    </table>
-</div>
-
-<div class="seccion total-caja">
-    <h2>TOTAL A COBRAR</h2>
-    <div class="total-numero" id="monto-total">$0</div>
-    <button class="btn-finalizar" onclick="finalizarVenta()">FINALIZAR VENTA</button>
-</div>
-
-<script>
-    // --- CONFIGURACIÓN DE TU SUPABASE ---
-    const SUPABASE_URL = 'https://ovctgqmhumlspklhbjhf.supabase.co'; 
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y3RncW1odW1sc3BrbGhiamhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMTcyOTEsImV4cCI6MjA4Mzc5MzI5MX0.6PrQwbYrjDZqo_Zku3uM-z7Bt3-Dn59cMbl5l9KAo_Q';
-    const clienteSupabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-    let carrito = [];
-    let total = 0;
-
-    // 1. ESCUCHAR AL TECLADO / ESCÁNER FÍSICO
-    const inputScanner = document.getElementById('codigo-scanner');
-    inputScanner.addEventListener('keypress', async (e) => {
-        if (e.key === 'Enter') {
-            const codigo = inputScanner.value;
-            inputScanner.value = ''; 
-            buscarYAgregar(codigo);
-        }
-    });
-
-    // 2. ESCUCHAR AL CELULAR (MODO REMOTO)
-    const canalVentas = clienteSupabase.channel('mostrador')
-      .on('broadcast', { event: 'escaneo' }, (payload) => {
-        console.log("Recibido desde celular:", payload.payload.codigo);
-        buscarYAgregar(payload.payload.codigo);
-      })
-      .subscribe();
-
-    // 3. FUNCIÓN PARA BUSCAR EN LA BASE DE DATOS
-    async function buscarYAgregar(codigo) {
-        let { data: producto, error } = await clienteSupabase
-            .from('productos')
-            .select('*')
-            .eq('codigo_barra', codigo)
-            .single();
-
-        if (producto) {
-            // Reproducir sonido de "bip"
-            new Audio('https://assets.mixkit.co/active_storage/sfx/2632/2632-preview.mp3').play();
-            
-            carrito.push(producto);
-            actualizarTabla();
-        } else {
-            console.error("No se encontró el producto:", codigo);
-            // Sonido de error opcional
-        }
-    }
-
-    // 4. ACTUALIZAR LA PANTALLA
-    function actualizarTabla() {
-        const tbody = document.querySelector('#tabla-ventas tbody');
-        tbody.innerHTML = '';
-        total = 0;
-
-        carrito.forEach((item, index) => {
-            total += item.precio_venta;
-            tbody.innerHTML += `
-                <tr>
-                    <td>${item.nombre}</td>
-                    <td>$${item.precio_venta}</td>
-                    <td>1</td>
-                    <td>$${item.precio_venta}</td>
-                </tr>
-            `;
-        });
-        document.getElementById('monto-total').innerText = '$' + total;
-    }
-
-    // 5. FINALIZAR VENTA Y RESTAR STOCK
-    async function finalizarVenta() {
-        if (carrito.length === 0) return alert("El carrito está vacío");
-
-        for (const item of carrito) {
-            // Restamos 1 al stock actual del producto
-            const nuevoStock = (item.stock || 0) - 1;
-
-            const { error } = await clienteSupabase
-                .from('productos')
-                .update({ stock: nuevoStock })
-                .eq('id', item.id);
-
-            if (error) console.error("Error al actualizar stock de " + item.nombre, error);
-        }
-
-        alert("Venta finalizada por $" + total + ". El stock ha sido actualizado.");
+    <div class="container-left">
+        <div class="header">
+            <h1>Kiosko POS</h1>
+            <input type="text" id="codigo-scanner" placeholder="Escanee producto o use celular..." autofocus>
+        </div>
         
-        // Limpiar todo para la siguiente venta
-        carrito = [];
-        actualizarTabla();
-    }
-</script>
+        <div style="overflow-y: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>PRODUCTO</th>
+                        <th>CANT.</th>
+                        <th>PRECIO</th>
+                        <th>SUBTOTAL</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-body">
+                    </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="container-right">
+        <div class="total-section">
+            <div class="total-label">TOTAL A PAGAR</div>
+            <div class="total-amount" id="monto-total">$0</div>
+        </div>
+
+        <div>
+            <div class="total-label" style="margin-bottom: 10px;">MÉTODO DE PAGO</div>
+            <div class="payment-methods">
+                <button class="btn-pay" onclick="seleccionarPago('Efectivo', this)">💵 Efectivo</button>
+                <button class="btn-pay" onclick="seleccionarPago('Transferencia', this)">📱 Transf./QR</button>
+                <button class="btn-pay" onclick="seleccionarPago('Débito', this)">💳 Débito</button>
+                <button class="btn-pay" onclick="seleccionarPago('Crédito', this)">💳 Crédito</button>
+            </div>
+            <button class="btn-finalizar" id="btn-finalizar" onclick="finalizarVenta()" disabled>FINALIZAR VENTA</button>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURACIÓN SUPABASE
+        const SUPABASE_URL = 'https://ovctgqmhumlspklhbjhf.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y3RncW1odW1sc3BrbGhiamhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMTcyOTEsImV4cCI6MjA4Mzc5MzI5MX0.6PrQwbYrjDZqo_Zku3uM-z7Bt3-Dn59cMbl5l9KAo_Q';
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let carrito = [];
+        let total = 0;
+        let metodoPago = "";
+
+        // Escuchar teclado
+        document.getElementById('codigo-scanner').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                buscarProducto(e.target.value);
+                e.target.value = '';
+            }
+        });
+
+        // Escuchar Celular (Broadcast)
+        client.channel('mostrador').on('broadcast', { event: 'escaneo' }, (payload) => {
+            buscarProducto(payload.payload.codigo);
+        }).subscribe();
+
+        async function buscarProducto(codigo) {
+            let { data, error } = await client.from('productos').select('*').eq('codigo_barra', codigo).single();
+            if (data) {
+                carrito.push(data);
+                actualizarInterfaz();
+                new Audio('https://assets.mixkit.co/active_storage/sfx/2632/2632-preview.mp3').play();
+            }
+        }
+
+        function actualizarInterfaz() {
+            const tbody = document.getElementById('tabla-body');
+            tbody.innerHTML = '';
+            total = 0;
+
+            carrito.forEach(item => {
+                total += item.precio_venta;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${item.nombre}</td>
+                        <td>1</td>
+                        <td>$${item.precio_venta}</td>
+                        <td>$${item.precio_venta}</td>
+                    </tr>
+                `;
+            });
+
+            document.getElementById('monto-total').innerText = '$' + total;
+            verificarBoton();
+        }
+
+        function seleccionarPago(metodo, btn) {
+            metodoPago = metodo;
+            document.querySelectorAll('.btn-pay').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            verificarBoton();
+        }
+
+        function verificarBoton() {
+            const btn = document.getElementById('btn-finalizar');
+            btn.disabled = !(carrito.length > 0 && metodoPago !== "");
+        }
+
+        async function finalizarVenta() {
+            // 1. Restar Stock
+            for (const prod of carrito) {
+                await client.from('productos').update({ stock: prod.stock - 1 }).eq('id', prod.id);
+            }
+
+            alert(`Venta exitosa por $${total} pagada con ${metodoPago}`);
+            
+            // Limpiar
+            carrito = [];
+            metodoPago = "";
+            document.querySelectorAll('.btn-pay').forEach(b => b.classList.remove('active'));
+            actualizarInterfaz();
+        }
+    </script>
 </body>
 </html>
