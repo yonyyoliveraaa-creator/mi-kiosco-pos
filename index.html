@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Carga de Stock - Mi Kiosco</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { font-family: sans-serif; padding: 30px; background: #f4f7f6; }
+        .formulario { background: white; padding: 20px; border-radius: 8px; max-width: 400px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        input { width: 100%; margin: 10px 0; padding: 10px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #24b47e; color: white; border: none; cursor: pointer; border-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div class="formulario">
+    <h3>📦 Cargar Nuevo Producto</h3>
+    <input type="text" id="codigo" placeholder="Escanear Código de Barras" autofocus>
+    <input type="text" id="nombre" placeholder="Nombre del Producto">
+    <input type="number" id="precio_costo" placeholder="Precio de Costo">
+    <input type="number" id="precio_venta" placeholder="Precio de Venta">
+    <input type="number" id="stock" placeholder="Cantidad Inicial">
+    <button onclick="guardarProducto()">Guardar en Inventario</button>
+    <p id="mensaje"></p>
+</div>
+
+<script>
+    // USA TUS DATOS REALES AQUÍ
+    const URL_PROYECTO = 'https://ovctgqmhumlspklhbjhf.supabase.co';
+    const KEY_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y3RncW1odW1sc3BrbGhiamhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMTcyOTEsImV4cCI6MjA4Mzc5MzI5MX0.6PrQwbYrjDZqo_Zku3uM-z7Bt3-Dn59cMbl5l9KAo_Q';
+
+    // Creamos el cliente de supabase UNA SOLA VEZ
+    const clienteSupabase = supabase.createClient(URL_PROYECTO, KEY_ANON);
+
+    async function guardarProducto() {
+        const codigo = document.getElementById('codigo').value;
+        const nombre = document.getElementById('nombre').value;
+        const pCosto = document.getElementById('precio_costo').value;
+        const pVenta = document.getElementById('precio_venta').value;
+        const cant = document.getElementById('stock').value;
+
+        const { data, error } = await clienteSupabase
+            .from('productos')
+            .insert([{ 
+                codigo_barra: codigo, 
+                nombre: nombre, 
+                precio_costo: pCosto,
+                precio_venta: pVenta, 
+                stock: cant 
+            }]);
+
+        if (error) {
+            console.error(error);
+            document.getElementById('mensaje').innerText = "Error: " + error.message;
+            document.getElementById('mensaje').style.color = "red";
+        } else {
+            document.getElementById('mensaje').innerText = "¡Producto guardado con éxito!";
+            document.getElementById('mensaje').style.color = "green";
+            // Limpiar campos
+            document.getElementById('codigo').value = '';
+            document.getElementById('nombre').value = '';
+            document.getElementById('precio_costo').value = '';
+            document.getElementById('precio_venta').value = '';
+            document.getElementById('stock').value = '';
+        }
+    }
+</script>
+
+</body>
+</html>
