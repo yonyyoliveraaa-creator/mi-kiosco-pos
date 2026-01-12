@@ -3,211 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kiosko POS Pro - Ventas y Fiados</title>
+    <title>Kiosko POS - Ventas</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --text-color: #ffffff;
-            --accent-color: #2ecc71;
-            --danger-color: #e74c3c;
-            --input-bg: #2d2d2d;
-        }
-
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            height: 100vh;
-        }
-
+        :root { --bg-color: #121212; --card-bg: #1e1e1e; --text-color: #ffffff; --accent-color: #2ecc71; --fiado-color: #f1c40f; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        .sidenav { height: 100%; width: 0; position: fixed; z-index: 1001; top: 0; left: 0; background-color: #111; overflow-x: hidden; transition: 0.3s; padding-top: 60px; box-shadow: 5px 0px 15px rgba(0,0,0,0.5); }
+        .sidenav a { padding: 15px 25px; text-decoration: none; font-size: 1.1rem; color: #818181; display: block; border-bottom: 1px solid #222; }
+        .sidenav a:hover { color: var(--accent-color); background: #222; }
+        .sidenav .closebtn { position: absolute; top: 10px; right: 25px; font-size: 36px; cursor: pointer; color: white; }
+        .open-btn { font-size: 24px; cursor: pointer; color: white; position: fixed; top: 20px; left: 20px; z-index: 1000; background: none; border: none; }
+        .brand-header { margin-left: 65px; margin-top: 15px; font-size: 1.6rem; font-weight: bold; }
+        .brand-k { color: var(--accent-color); }
         .container-left { flex: 2; padding: 20px; display: flex; flex-direction: column; border-right: 1px solid #333; }
         .container-right { flex: 1; padding: 20px; background-color: var(--card-bg); display: flex; flex-direction: column; justify-content: space-between; }
-
-        #codigo-scanner {
-            width: 100%; padding: 15px; background: var(--input-bg);
-            border: 2px solid #444; border-radius: 8px; color: white; font-size: 1.2rem;
-        }
-
+        #codigo-scanner { width: 100%; padding: 15px; background: #2d2d2d; border: 2px solid #444; border-radius: 8px; color: white; font-size: 1.2rem; margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th { text-align: left; color: #888; border-bottom: 1px solid #333; padding: 10px; }
-        td { padding: 10px; border-bottom: 1px solid #222; }
-
-        .total-amount { font-size: 4rem; font-weight: bold; color: var(--accent-color); text-align: center; }
-
-        .payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .btn-pay {
-            padding: 12px; border: none; border-radius: 8px; cursor: pointer;
-            background: #333; color: white; font-weight: bold;
-        }
+        th { text-align: left; color: #888; border-bottom: 1px solid #333; padding: 10px; font-size: 0.8rem; }
+        td { padding: 12px 10px; border-bottom: 1px solid #222; }
+        .total-amount { font-size: 4.5rem; font-weight: bold; color: var(--accent-color); text-align: center; }
+        .payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .btn-pay { padding: 15px; border: none; border-radius: 8px; cursor: pointer; background: #333; color: white; font-weight: bold; }
         .btn-pay.active { background: var(--accent-color); color: black; }
-        .btn-fiado { background: #f1c40f; color: black; } /* Color amarillo para fiados */
-
-        .btn-finalizar {
-            width: 100%; padding: 20px; background: var(--accent-color);
-            color: black; border: none; border-radius: 8px; font-size: 1.5rem; font-weight: bold; cursor: pointer;
-        }
-        .btn-finalizar:disabled { background: #555; }
-
-        input[type="number"] {
-            background: #333; color: white; border: 1px solid #555; padding: 5px; width: 60px; border-radius: 4px;
-        }
+        .btn-finalizar { width: 100%; padding: 20px; background: var(--accent-color); color: black; border: none; border-radius: 8px; font-size: 1.5rem; font-weight: bold; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
 
+    <div id="mySidenav" class="sidenav">
+        <div class="closebtn" onclick="closeNav()">&times;</div>
+        <a href="ventas.html">🛒 Ventas</a>
+        <a href="index.html">📦 Inventario</a>
+        <a href="libreta.html">📖 Libreta Fiados</a>
+        <a href="reportes.html">📊 Cierre de Caja</a>
+    </div>
+
+    <button class="open-btn" onclick="openNav()">&#9776;</button>
+
     <div class="container-left">
-        <h1>Kiosko POS - Ventas</h1>
-        <input type="text" id="codigo-scanner" placeholder="Escanear o ingresar código..." autofocus>
-        
-        <div style="overflow-y: auto;">
+        <div class="brand-header"><span class="brand-k">K</span>iosko POS - Ventas</div>
+        <input type="text" id="codigo-scanner" placeholder="Escanee producto..." autofocus>
+        <div style="overflow-y: auto; flex-grow: 1;">
             <table>
-                <thead>
-                    <tr>
-                        <th>PRODUCTO</th>
-                        <th>CANT.</th>
-                        <th>PRECIO</th>
-                        <th>SUBTOTAL</th>
-                        <th></th>
-                    </tr>
-                </thead>
+                <thead><tr><th>PRODUCTO</th><th>CANT.</th><th>PRECIO</th><th>TOTAL</th><th></th></tr></thead>
                 <tbody id="tabla-body"></tbody>
             </table>
         </div>
     </div>
 
     <div class="container-right">
-        <div class="total-section">
-            <h2 style="text-align: center; color: #888;">TOTAL</h2>
-            <div class="total-amount" id="monto-total">$0</div>
-            <p id="cliente-info" style="text-align: center; color: #f1c40f; font-weight: bold;"></p>
-        </div>
-
         <div>
-            <div style="margin-bottom: 10px; color: #888;">MÉTODO DE PAGO</div>
+            <div class="total-amount" id="monto-total">$0</div>
+            <p id="cliente-info" style="text-align: center; color: var(--fiado-color); font-weight: bold;"></p>
+        </div>
+        <div>
             <div class="payment-methods">
                 <button class="btn-pay" onclick="seleccionarPago('Efectivo', this)">💵 Efectivo</button>
                 <button class="btn-pay" onclick="seleccionarPago('QR/Transf', this)">📱 QR/Transf</button>
                 <button class="btn-pay" onclick="seleccionarPago('Tarjeta', this)">💳 Tarjeta</button>
-                <button class="btn-pay btn-fiado" onclick="seleccionarFiado(this)">📖 Fiado/Libreta</button>
+                <button class="btn-pay" style="border:1px solid var(--fiado-color);color:var(--fiado-color)" onclick="seleccionarFiado(this)">📖 Fiado</button>
             </div>
-            <button class="btn-finalizar" id="btn-finalizar" onclick="finalizarVenta()" disabled>FINALIZAR VENTA</button>
+            <button class="btn-finalizar" id="btn-finalizar" onclick="finalizarVenta()" disabled>FINALIZAR</button>
         </div>
     </div>
 
     <script>
-        const SUPABASE_URL = 'https://ovctgqmhumlspklhbjhf.supabase.co';
+        // --- PEGA TUS DATOS AQUÍ ---
+        const SUPABASE_URL = 'https://ovctgqmhumlspklhbjhf.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92Y3RncW1odW1sc3BrbGhiamhmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyMTcyOTEsImV4cCI6MjA4Mzc5MzI5MX0.6PrQwbYrjDZqo_Zku3uM-z7Bt3-Dn59cMbl5l9KAo_Q';
-        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const client = supabase.createClient(URL, KEY);
 
         let carrito = [];
         let total = 0;
         let metodoPago = "";
         let nombreCliente = "";
 
-        document.getElementById('codigo-scanner').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') { buscarProducto(e.target.value); e.target.value = ''; }
+        // ESTAS FUNCIONES DEBEN IR PRIMERO
+        function openNav() { document.getElementById("mySidenav").style.width = "260px"; }
+        function closeNav() { document.getElementById("mySidenav").style.width = "0"; }
+
+        document.getElementById('codigo-scanner').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                buscarProducto(this.value);
+                this.value = '';
+            }
         });
 
-        // Escuchar Celular
-        client.channel('mostrador').on('broadcast', { event: 'escaneo' }, (payload) => {
-            buscarProducto(payload.payload.codigo);
-        }).subscribe();
-
         async function buscarProducto(codigo) {
-            let { data, error } = await client.from('productos').select('*').eq('codigo_barra', codigo).single();
-            if (data) {
-                const index = carrito.findIndex(item => item.id === data.id);
-                if (index !== -1) {
-                    carrito[index].cantidad++;
+            try {
+                let { data, error } = await client.from('productos').select('*').eq('codigo_barra', codigo).single();
+                if (data) {
+                    const index = carrito.findIndex(item => item.id === data.id);
+                    if (index !== -1) { carrito[index].cantidad++; } 
+                    else { data.cantidad = 1; carrito.push(data); }
+                    actualizarInterfaz();
                 } else {
-                    data.cantidad = 1;
-                    carrito.push(data);
+                    console.log("Producto no encontrado");
                 }
-                new Audio('https://assets.mixkit.co/active_storage/sfx/2632/2632-preview.mp3').play();
-                actualizarInterfaz();
-            }
+            } catch (err) { console.error(err); }
         }
 
         function actualizarInterfaz() {
             const tbody = document.getElementById('tabla-body');
             tbody.innerHTML = '';
             total = 0;
-
             carrito.forEach((item, index) => {
-                let subtotal = item.precio_venta * item.cantidad;
-                total += subtotal;
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${item.nombre}</td>
-                        <td><input type="number" value="${item.cantidad}" onchange="cambiarCantidad(${index}, this.value)"></td>
-                        <td>$${item.precio_venta}</td>
-                        <td>$${subtotal.toFixed(2)}</td>
-                        <td><button onclick="eliminarProducto(${index})" style="background:none; border:none; color:#e74c3c; cursor:pointer; font-size:1.2rem;">✕</button></td>
-                    </tr>
-                `;
+                let sub = item.precio_venta * item.cantidad;
+                total += sub;
+                tbody.innerHTML += `<tr>
+                    <td>${item.nombre}</td>
+                    <td>${item.cantidad}</td>
+                    <td>$${item.precio_venta}</td>
+                    <td>$${sub.toFixed(2)}</td>
+                    <td><button onclick="eliminar(${index})">✕</button></td>
+                </tr>`;
             });
             document.getElementById('monto-total').innerText = '$' + total.toFixed(2);
-            verificarBoton();
-        }
-
-        function cambiarCantidad(index, valor) {
-            if (valor > 0) { carrito[index].cantidad = parseInt(valor); actualizarInterfaz(); }
-        }
-
-        function eliminarProducto(index) {
-            carrito.splice(index, 1); actualizarInterfaz();
-        }
-
-        function seleccionarPago(metodo, btn) {
-            metodoPago = metodo;
-            nombreCliente = "";
-            document.getElementById('cliente-info').innerText = "";
-            document.querySelectorAll('.btn-pay').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            verificarBoton();
-        }
-
-        function seleccionarFiado(btn) {
-            let nombre = prompt("Ingrese el nombre del cliente para la libreta:");
-            if (nombre) {
-                nombreCliente = nombre;
-                metodoPago = "Fiado";
-                document.getElementById('cliente-info').innerText = "Cliente: " + nombreCliente;
-                document.querySelectorAll('.btn-pay').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                verificarBoton();
-            }
-        }
-
-        function verificarBoton() {
             document.getElementById('btn-finalizar').disabled = !(carrito.length > 0 && metodoPago !== "");
         }
 
-        async function finalizarVenta() {
-            // Guardar en la tabla 'ventas' (Asegúrate de tener la columna 'cliente' en Supabase)
-            const { error: errorVenta } = await client.from('ventas').insert([{ 
-                total: total, 
-                metodo_pago: metodoPago,
-                productos_vendidos: carrito,
-                cliente: nombreCliente // Guardamos el nombre si es fiado
-            }]);
+        function eliminar(i) { carrito.splice(i, 1); actualizarInterfaz(); }
 
-            if (errorVenta) return alert("Error al guardar venta");
-
-            // Restar stock
-            for (const prod of carrito) {
-                await client.from('productos').update({ stock: prod.stock - prod.cantidad }).eq('id', prod.id);
-            }
-
-            alert("Venta procesada con éxito.");
-            carrito = []; metodoPago = ""; nombreCliente = "";
+        function seleccionarPago(m, btn) {
+            metodoPago = m; nombreCliente = "";
             document.getElementById('cliente-info').innerText = "";
             document.querySelectorAll('.btn-pay').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             actualizarInterfaz();
+        }
+
+        function seleccionarFiado(btn) {
+            let n = prompt("Nombre cliente:");
+            if(n) {
+                nombreCliente = n; metodoPago = "Fiado";
+                document.getElementById('cliente-info').innerText = "Fiado a: " + n;
+                document.querySelectorAll('.btn-pay').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                actualizarInterfaz();
+            }
+        }
+
+        async function finalizarVenta() {
+            try {
+                const { error } = await client.from('ventas').insert([{
+                    total: total,
+                    metodo_pago: metodoPago,
+                    productos_vendidos: carrito,
+                    cliente: nombreCliente
+                }]);
+                if (error) throw error;
+                alert("Venta Exitosa");
+                location.reload();
+            } catch (err) { alert("Error: " + err.message); }
         }
     </script>
 </body>
