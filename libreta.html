@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Libreta de Fiados - Control de Deudas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --accent-color: #f1c40f; /* Amarillo para resaltar deudas */
+            --danger-color: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .card-deuda {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid var(--accent-color);
+        }
+
+        .info-cliente h2 { margin: 0; color: var(--accent-color); }
+        .info-cliente p { margin: 5px 0; color: #888; }
+
+        .monto-deuda {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .btn-cobrar {
+            background: var(--accent-color);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-cobrar:hover { opacity: 0.8; }
+        
+        #busqueda {
+            padding: 10px;
+            width: 300px;
+            border-radius: 5px;
+            border: 1px solid #444;
+            background: #2d2d2d;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+ <nav style="background: #1e1e1e; padding: 15px; display: flex; justify-content: center; gap: 20px; border-bottom: 2px solid #333; font-family: sans-serif;">
+    <a href="ventas.html" style="color: #2ecc71; text-decoration: none; font-weight: bold; font-size: 1.1rem;">🛒 VENTAS</a>
+    <a href="index.html" style="color: #3498db; text-decoration: none; font-weight: bold; font-size: 1.1rem;">📦 INVENTARIO</a>
+    <a href="libreta.html" style="color: #f1c40f; text-decoration: none; font-weight: bold; font-size: 1.1rem;">📖 LIBRETA</a>
+</nav>s
+    <div class="header">
+        <h1>📖 Libreta de Fiados</h1>
+        <input type="text" id="busqueda" placeholder="Buscar cliente..." onkeyup="filtrarClientes()">
+    </div>
+
+    <div id="lista-fiados">
+        </div>
+
+    <script>
+        const SUPABASE_URL = 'TU_URL_AQUI';
+        const SUPABASE_KEY = 'TU_KEY_AQUI';
+        const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        async function cargarLibreta() {
+            // Buscamos todas las ventas que sean de tipo "Fiado"
+            let { data: deudas, error } = await client
+                .from('ventas')
+                .select('*')
+                .eq('metodo_pago', 'Fiado')
+                .order('created_at', { ascending: false });
+
+            if (error) return console.error(error);
+
+            // Agrupamos por cliente para sumar sus deudas totales
+            const resumenDeudas = {};
+            deudas.forEach(v => {
+                if (!resumenDeudas[v.cliente]) {
+                    resumenDeudas[v.cliente] = { total: 0, ultima: v.created_at };
+                }
+                resumenDeudas[v.cliente].total += v.total;
+            });
+
+            mostrarDeudas(resumenDeudas);
+        }
+
+        function mostrarDeudas(datos) {
+            const contenedor = document.getElementById('lista-fiados');
+            contenedor.innerHTML = '';
+
+            for (const cliente in datos) {
+                const fecha = new Date(datos[cliente].ultima).toLocaleDateString();
+                contenedor.innerHTML += `
+                    <div class="card-deuda">
+                        <div class="info-cliente">
+                            <h2>${cliente}</h2>
+                            <p>Última compra: ${fecha}</p>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="monto-deuda">$${datos[cliente].total.toFixed(2)}</div>
+                            <button class="btn-cobrar" onclick="marcarComoPagado('${cliente}')">MARCAR PAGADO</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        async function marcarComoPagado(nombre) {
+            if (!confirm(`¿Confirmas que ${nombre} pagó toda su deuda?`)) return;
+
+            // Para simplificar, cambiaremos el estado de sus ventas a "Pagado"
+            const { error } = await client
+                .from('ventas')
+                .update({ metodo_pago: 'Efectivo (Pagado)' })
+                .eq('cliente', nombre)
+                .eq('metodo_pago', 'Fiado');
+
+            if (!error) {
+                alert(`Deuda de ${nombre} saldada.`);
+                cargarLibreta();
+            }
+        }
+
+        cargarLibreta();
+    </script>
+</body>
+</html>
