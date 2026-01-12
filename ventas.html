@@ -125,17 +125,15 @@ const canalVentas = clienteSupabase.channel('mostrador')
 
 // Función auxiliar para que el celular use la misma lógica que el input de teclado
 async function buscarYAgregar(codigo) {
-    let { data: producto } = await clienteSupabase
-        .from('productos')
-        .select('*')
-        .eq('codigo_barra', codigo)
-        .single();
-
-    if (producto) {
-        agregarAlCarrito(producto);
-        alert("¡Producto añadido desde celular: " + producto.nombre + "!");
+   
+    
     }
-}
+    //OPCIONAL: Reproducir un sonido de "bip" para avisar
+     let beep = new Audio('https://assets.mixkit.co/active_storage/sfx/2632/2632-preview.mp3');
+    beep.play();
+    
+
+    
 </script>
 </body>
 </html>
